@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>FTP Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #fff; color: #333; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar { border-bottom: 1px solid #eee; background: white; }
+        .table th { font-weight: 600; text-transform: uppercase; font-size: 0.85rem; color: #888; border-bottom: 2px solid #eee; }
+        .table td { vertical-align: middle; border-bottom: 1px solid #f5f5f5; }
+        .icon-muted { color: #aaa; }
+        .btn-action { color: #333; }
+        .btn-action:hover { color: #000; }
+        .path-display { font-family: monospace; background: #f8f9fa; padding: 5px 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg py-3">
+    <div class="container">
+        <span class="navbar-brand fw-bold fs-5">FTP CLIENT <span class="text-muted fw-normal fs-6">Minimal</span></span>
+        <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-dark">Log Out</a>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="text-muted small me-2">LOCATION:</span>
+            <span class="path-display">{{ current_path }}</span>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-dark" data-bs-toggle="modal" data-bs-target="#uploadModal">+ Upload File</button>
+            <button class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#folderModal">+ New Folder</button>
+        </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} py-2 small">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th width="50%">Name</th>
+                <th width="15%">Type</th>
+                <th width="15%">Size</th>
+                <th width="20%" class="text-end">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if current_path != '/' %}
+            <tr>
+                <td colspan="4">
+                    <a href="{{ url_for('dashboard', path=parent_path) }}" class="text-decoration-none text-secondary fw-bold">
+                        <i class="bi bi-arrow-return-left"></i> .. (Parent Directory)
+                    </a>
+                </td>
+            </tr>
+            {% endif %}
+
+            {% for f in files %}
+            <tr>
+                <td>
+                    <i class="{{ f.icon }} icon-muted me-2"></i>
+                    {% if f.type == 'DIR' %}
+                        <a href="{{ url_for('dashboard', path=current_path + '/' + f.name if current_path != '/' else '/' + f.name) }}" class="text-decoration-none text-dark fw-bold">
+                            {{ f.name }}
+                        </a>
+                    {% else %}
+                        {{ f.name }}
+                    {% endif %}
+                </td>
+                <td class="text-muted small">{{ f.type }}</td>
+                <td class="text-muted small">{{ f.size }}</td>
+                <td class="text-end">
+                    {% if f.type == 'FILE' %}
+                    <a href="{{ url_for('download', path=current_path, filename=f.name) }}" class="btn-action me-2" title="Download">
+                        <i class="bi bi-download"></i>
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('delete', path=current_path, filename=f.name, type=f.type) }}" class="btn-action text-danger" onclick="return confirm('Delete item?')" title="Delete">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <form action="{{ url_for('upload') }}" method="POST" enctype="multipart/form-data">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <h6 class="mb-3">Upload File</h6>
+                    <input type="hidden" name="path" value="{{ current_path }}">
+                    <input type="file" name="file" class="form-control mb-3" required>
+                    <button type="submit" class="btn btn-dark w-100">Start Upload</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="folderModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <form action="{{ url_for('create_folder') }}" method="POST">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <h6 class="mb-3">New Directory</h6>
+                    <input type="hidden" name="path" value="{{ current_path }}">
+                    <input type="text" name="folder_name" class="form-control mb-3" placeholder="Folder Name" required>
+                    <button type="submit" class="btn btn-outline-dark w-100">Create</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
